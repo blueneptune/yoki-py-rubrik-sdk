@@ -1,0 +1,76 @@
+[project]
+name = "rubrik-rsc-sdk-for-python"
+version = "0.1.0"
+description = "Facade-of-facades Python SDK for Rubrik Security Cloud's (RSC) GraphQL API."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Michael Billings", email = "blueneptune@gmail.com" }]
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "pydantic>=2.13.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/blueneptune/rubrik-rsc-sdk-for-python"
+Repository = "https://github.com/blueneptune/rubrik-rsc-sdk-for-python"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+# With no git commits yet, hatchling can't fall back to `git ls-files` to
+# figure out what belongs in the sdist, so it includes everything under the
+# repo root by default - explicitly excluding IDE/tooling state keeps
+# machine-specific junk (e.g. .idea/workspace.xml) out of published
+# artifacts regardless of git history.
+exclude = [".idea", ".venv", ".mypy_cache", ".ruff_cache", ".pytest_cache", "*.iml"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rubrik_rsc"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14.0",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "respx>=0.22.0",
+    "ruff>=0.9.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=rubrik_rsc --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/rubrik_rsc"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+python_version = "3.12"
+files = ["src", "tests"]
+strict = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
