@@ -12,7 +12,11 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+# coerce_numbers_to_str: RSC sends some ids as numbers - an activity
+# series' `id` arrives as 11352988 - where the SDK keeps ids as strings.
+CAMEL_CONFIG = ConfigDict(
+    alias_generator=to_camel, populate_by_name=True, coerce_numbers_to_str=True
+)
 
 
 class ClusterReference(BaseModel):

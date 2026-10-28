@@ -292,3 +292,13 @@ def test_key_prefers_the_global_id_and_falls_back_to_cluster_and_series() -> Non
     node["fid"] = None
     node["activitySeriesId"] = "series-9"
     assert ActivitySeries.model_validate(node).key == "c1:series-9"
+
+
+def test_a_numeric_series_id_is_read_as_a_string() -> None:
+    # RSC sends an activity series' id as a number.
+    series = ActivitySeries.model_validate(
+        {"id": 11352988, "activitySeriesId": "a1", "cluster": {"id": "c1", "name": "x"}}
+    )
+
+    assert series.id == "11352988"
+    assert series.key == "c1:a1"
