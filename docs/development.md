@@ -14,7 +14,8 @@ query.py       ConnectionQuery: one GraphQL document, parsed and paged
 pagination.py  Page, PageInfo, Collection
 common.py      small shared models (cluster and SLA references)
 activity.py  cluster.py  sla_domain.py  mssql.py      the groups
-probe.py       rubrik-probe
+tools/         rubrik-probe, rubrik-sample, rubrik-mask and their .env
+               settings - see the README's "Running it on its own"
 ```
 
 It sits on `sdk-primer-core` for transport - retries, typed exceptions,
