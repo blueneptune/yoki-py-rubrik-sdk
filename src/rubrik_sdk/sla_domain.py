@@ -18,20 +18,18 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
 
+from .common import CAMEL_CONFIG
 from .pagination import Page
 from .query import ConnectionQuery
 
 if TYPE_CHECKING:
     from .client import RubrikClient
 
-_CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-
 
 class Duration(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     duration: int
     unit: str
@@ -42,7 +40,7 @@ class SlaDomain(BaseModel):
     parse into this same model: whichever inline fragment matched supplies
     its fields, the other's are simply absent (left at their defaults)."""
 
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     id: str
     name: str
@@ -54,7 +52,7 @@ class SlaDomain(BaseModel):
 
 
 class SlaAssignResult(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     success: bool
 
