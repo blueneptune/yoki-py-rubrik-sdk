@@ -1,9 +1,10 @@
 import json
 from typing import Any
 
+import pytest
 import respx
 
-from rubrik_rsc import RscClient, SlaDomainManager
+from rubrik_sdk import ChangesNotAllowed, RubrikClient, SlaDomainManager
 
 from .conftest import GRAPHQL_URL, graphql_responder, make_page_info
 
@@ -48,7 +49,7 @@ def _sla_domain_page(
 
 @respx.mock
 def test_list_parses_both_cluster_and_global_sla_domain_variants() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -83,7 +84,7 @@ def test_list_parses_both_cluster_and_global_sla_domain_variants() -> None:
 
 @respx.mock
 def test_all_auto_paginates_across_multiple_pages() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -111,7 +112,7 @@ def test_all_auto_paginates_across_multiple_pages() -> None:
 
 @respx.mock
 def test_find_by_name_returns_matching_sla_domain() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -135,7 +136,9 @@ def test_find_by_name_returns_matching_sla_domain() -> None:
 
 @respx.mock
 def test_assign_to_objects_sends_expected_mutation_variables() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(
+        base_url="https://test-instance.my.rubrik.com", token="test-token", allow_changes=True
+    )
     route = respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -159,3 +162,10 @@ def test_assign_to_objects_sends_expected_mutation_variables() -> None:
         "shouldApplyToExistingSnapshots": False,
         "existing_snapshot_retention": None,
     }
+
+
+def test_assign_to_objects_is_refused_on_a_read_only_client() -> None:
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
+
+    with pytest.raises(ChangesNotAllowed):
+        client.sla_domains.assign_to_objects(object_ids=["a"], sla_id="gold")

@@ -8,7 +8,7 @@ import json
 
 from pydantic import BaseModel
 
-from rubrik_rsc import Collection, Page, PageInfo
+from rubrik_sdk import Collection, Page, PageInfo
 
 
 class Widget(BaseModel):

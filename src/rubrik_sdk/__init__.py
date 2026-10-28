@@ -1,19 +1,13 @@
-"""A facade-of-facades Python SDK for Rubrik Security Cloud's (RSC) GraphQL
-API, styled after https://github.com/blueneptune/sdk-primer.
-
-See `facade.py` for how the pieces (`RscClient`, `ConnectionQuery`,
-`ClusterManager`/`SlaDomainManager`, `RSC`) fit together, and `cluster.py`
-for the template to follow when adding a new domain.
-"""
+"""rubrik-sdk: a small, read-only-by-default SDK for Rubrik Security
+Cloud's GraphQL API, built on sdk-primer-core. See client.py."""
 
 from __future__ import annotations
 
 from .activity import ActivitySeries, ActivitySeriesManager, ActivitySeriesQuery, Taskchain
-from .auth import ServiceAccount, fetch_access_token
-from .client import RscClient
+from .auth import ServiceAccount
+from .client import RubrikClient
 from .cluster import Cluster, ClusterManager, ClusterQuery
-from .errors import GraphQLError, RscAuthError
-from .facade import RSC, connect, connect_with_service_account
+from .errors import ChangesNotAllowed, GraphQLError, RubrikError
 from .logging import configure_logging
 from .mssql import (
     MssqlDatabase,
@@ -27,14 +21,14 @@ from .query import ConnectionQuery
 from .sla_domain import SlaAssignResult, SlaDomain, SlaDomainManager, SlaDomainQuery
 
 __all__ = [
-    "RSC",
     "ActivitySeries",
     "ActivitySeriesManager",
     "ActivitySeriesQuery",
-    "Collection",
+    "ChangesNotAllowed",
+    "Cluster",
     "ClusterManager",
     "ClusterQuery",
-    "Cluster",
+    "Collection",
     "ConnectionQuery",
     "GraphQLError",
     "MssqlDatabase",
@@ -44,8 +38,8 @@ __all__ = [
     "MssqlSnapshotQuery",
     "Page",
     "PageInfo",
-    "RscAuthError",
-    "RscClient",
+    "RubrikClient",
+    "RubrikError",
     "ServiceAccount",
     "SlaAssignResult",
     "SlaDomain",
@@ -53,7 +47,4 @@ __all__ = [
     "SlaDomainQuery",
     "Taskchain",
     "configure_logging",
-    "connect",
-    "connect_with_service_account",
-    "fetch_access_token",
 ]

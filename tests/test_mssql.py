@@ -2,7 +2,7 @@ from typing import Any
 
 import respx
 
-from rubrik_rsc import MssqlDatabaseManager, RscClient
+from rubrik_sdk import MssqlDatabaseManager, RubrikClient
 
 from .conftest import GRAPHQL_URL, graphql_responder, make_page_info
 
@@ -34,7 +34,7 @@ def _database_node(
 
 @respx.mock
 def test_list_returns_every_database_from_the_flat_nodes_list() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -72,7 +72,7 @@ def test_list_returns_every_database_from_the_flat_nodes_list() -> None:
 
 @respx.mock
 def test_for_host_filters_databases_by_deepest_physical_path_segment() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -103,7 +103,7 @@ def test_for_host_filters_databases_by_deepest_physical_path_segment() -> None:
 
 @respx.mock
 def test_unprotected_returns_only_databases_without_an_effective_sla_domain() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -138,7 +138,7 @@ def test_unprotected_returns_only_databases_without_an_effective_sla_domain() ->
 
 @respx.mock
 def test_get_returns_database_details() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -215,7 +215,7 @@ def _snapshot_node(*, id: str, corrupted: bool = False) -> dict[str, Any]:  # no
 
 @respx.mock
 def test_snapshots_returns_a_single_page_of_backup_history() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -247,7 +247,7 @@ def test_snapshots_returns_a_single_page_of_backup_history() -> None:
 
 @respx.mock
 def test_all_snapshots_auto_paginates_a_databases_full_backup_history() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {

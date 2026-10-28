@@ -1,9 +1,10 @@
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 import respx
 
-from rubrik_rsc import ActivitySeriesManager, RscClient
+from rubrik_sdk import ActivitySeries, ActivitySeriesManager, RubrikClient
 
 from .conftest import GRAPHQL_URL, graphql_responder, make_page_info
 
@@ -59,7 +60,7 @@ def _activity_series_page(
 
 @respx.mock
 def test_list_returns_a_single_page_of_jobs() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -89,7 +90,7 @@ def test_list_returns_a_single_page_of_jobs() -> None:
 
 @respx.mock
 def test_all_auto_paginates_across_multiple_pages() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -117,7 +118,7 @@ def test_all_auto_paginates_across_multiple_pages() -> None:
 
 @respx.mock
 def test_for_object_filters_by_object_fid() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     route = respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -142,7 +143,7 @@ def test_for_object_filters_by_object_fid() -> None:
 
 @respx.mock
 def test_status_returns_taskchain_when_present() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -174,7 +175,7 @@ def test_status_returns_taskchain_when_present() -> None:
 
 @respx.mock
 def test_status_returns_none_when_taskchain_is_null() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {"TaskchainStatus": [{"data": {"getKorgTaskchainStatus": {"taskchain": None}}}]}
@@ -185,3 +186,109 @@ def test_status_returns_none_when_taskchain_is_null() -> None:
     taskchain = manager.status("does-not-exist")
 
     assert taskchain is None
+
+
+def _light_page(nodes: list[dict[str, Any]], cursor: str | None) -> dict[str, Any]:
+    for node in nodes:
+        node.pop("activityConnection", None)
+    return {
+        "data": {
+            "activitySeriesConnection": {
+                "edges": [{"node": node} for node in nodes],
+                "pageInfo": {"endCursor": cursor, "hasNextPage": cursor is not None},
+            }
+        }
+    }
+
+
+@respx.mock
+def test_iter_pages_walks_every_page_oldest_change_first() -> None:
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
+    route = respx.post(GRAPHQL_URL).mock(
+        side_effect=graphql_responder(
+            {
+                "ActivitySeriesPage": [
+                    _light_page([_activity_series_node(id="a", object_name="x")], "c1"),
+                    _light_page([_activity_series_node(id="b", object_name="y")], None),
+                ]
+            }
+        )
+    )
+    since = datetime(2024, 6, 1, 12, 0, tzinfo=UTC)
+
+    pages = list(client.jobs.iter_pages(updated_after=since, page_size=1))
+
+    assert [[s.id for s in page] for page in pages] == [["a"], ["b"]]
+    first, second = (json.loads(call.request.content)["variables"] for call in route.calls)
+    assert first == {
+        "first": 1,
+        "sortBy": "LAST_UPDATED",
+        "sortOrder": "ASC",
+        "filters": {"lastUpdatedTimeGt": "2024-06-01T12:00:00Z"},
+    }
+    assert second["after"] == "c1"
+    assert "activityConnection" not in json.loads(route.calls[0].request.content)["query"]
+
+
+@respx.mock
+def test_iter_pages_skips_a_record_it_cannot_read() -> None:
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
+    bad = _activity_series_node(id="bad", object_name="x")
+    bad["startTime"] = "not a time"
+    respx.post(GRAPHQL_URL).mock(
+        side_effect=graphql_responder(
+            {
+                "ActivitySeriesPage": [
+                    _light_page([bad, _activity_series_node(id="good", object_name="y")], None)
+                ]
+            }
+        )
+    )
+
+    pages = list(client.jobs.iter_pages())
+
+    assert [s.id for s in pages[0]] == ["good"]
+
+
+@respx.mock
+def test_sample_asks_for_the_newest_few() -> None:
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
+    route = respx.post(GRAPHQL_URL).mock(
+        side_effect=graphql_responder(
+            {
+                "ActivitySeriesPage": [
+                    _light_page([_activity_series_node(id="a", object_name="x")], None)
+                ]
+            }
+        )
+    )
+
+    series = client.jobs.sample(3)
+
+    assert [s.id for s in series] == ["a"]
+    variables = json.loads(route.calls.last.request.content)["variables"]
+    assert variables == {"first": 3, "sortBy": "LAST_UPDATED", "sortOrder": "DESC"}
+
+
+def test_series_times_are_read_as_timezone_aware_datetimes() -> None:
+    series = ActivitySeries.model_validate(_activity_series_node(id="a", object_name="x"))
+
+    assert series.start_time == datetime(2024, 6, 1, 0, 0, tzinfo=UTC)
+
+
+def test_is_active_reads_the_status_loosely() -> None:
+    def status(value: str) -> bool:
+        return ActivitySeries.model_validate(
+            _activity_series_node(id="a", object_name="x", status=value)
+        ).is_active
+
+    assert status("Running") and status("RUNNING") and status("Queued")
+    assert not status("Success") and not status("Failure") and not status("Canceled")
+
+
+def test_key_prefers_the_global_id_and_falls_back_to_cluster_and_series() -> None:
+    node = _activity_series_node(id="7", object_name="x")
+    assert ActivitySeries.model_validate(node).key == "7"
+    node["fid"] = None
+    node["activitySeriesId"] = "series-9"
+    assert ActivitySeries.model_validate(node).key == "c1:series-9"

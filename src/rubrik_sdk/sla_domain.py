@@ -16,14 +16,16 @@ CRUD template.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from .client import RscClient
 from .pagination import Page
 from .query import ConnectionQuery
+
+if TYPE_CHECKING:
+    from .client import RubrikClient
 
 _CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -156,7 +158,7 @@ class SlaDomainManager:
     """What you get back as `rsc.sla_domains` from the `RSC` facade (see
     `facade.py`)."""
 
-    def __init__(self, client: RscClient) -> None:
+    def __init__(self, client: RubrikClient) -> None:
         self._client = client
 
     # `list()` (below) is defined last in this class body, not first: once a
@@ -195,7 +197,7 @@ class SlaDomainManager:
         """Assign (or, with `assign_type="noAssignment"`/`"doNotProtect"` -
         see `SlaAssignTypeEnum` in the schema - unassign) an SLA domain to
         one or more objects."""
-        data = self._client.execute(
+        data = self._client.change(
             _ASSIGN_MUTATION_DOCUMENT,
             {
                 "slaId": sla_id,

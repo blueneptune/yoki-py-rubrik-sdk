@@ -11,7 +11,7 @@ base class (see `cluster.py`/`sla_domain.py` for the concrete subclasses).
 
 `ConnectionQuery` itself is never instantiated - every method is a
 classmethod, so a subclass is just a named bundle of "this document, parsed
-this way", handed an `RscClient` explicitly at call time rather than holding
+this way", handed an `RubrikClient` explicitly at call time rather than holding
 one itself. That mirrors `BaseAPIModel.load()`/`.find()`: the caller is
 always the one supplying the client (directly, or via a domain manager - see
 `cluster.py`'s `ClusterManager` - that already has one).
@@ -20,12 +20,14 @@ always the one supplying the client (directly, or via a domain manager - see
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from .client import RscClient
 from .pagination import Page, PageInfo
+
+if TYPE_CHECKING:
+    from .client import RubrikClient
 
 
 def _dig(data: dict[str, Any], path: tuple[str, ...]) -> dict[str, Any]:
@@ -47,7 +49,7 @@ class ConnectionQuery[M: BaseModel]:
     node_model: type[M]
 
     @classmethod
-    def fetch_page(cls, client: RscClient, **variables: Any) -> Page[M]:
+    def fetch_page(cls, client: RubrikClient, **variables: Any) -> Page[M]:
         """Fetch exactly one page. `variables` are the GraphQL document's
         variables verbatim (e.g. `first=`, `after=`, `filter=`, `sortBy=`) -
         any left as `None` are dropped rather than sent, since RSC's schema
@@ -63,7 +65,7 @@ class ConnectionQuery[M: BaseModel]:
         return Page(items=items, page_info=page_info)
 
     @classmethod
-    def fetch_all(cls, client: RscClient, **variables: Any) -> Iterator[M]:
+    def fetch_all(cls, client: RubrikClient, **variables: Any) -> Iterator[M]:
         """Walk every page via `pageInfo.hasNextPage`/`endCursor`, yielding
         items one at a time rather than building the full list in memory
         first - so callers can `break` out early (e.g. `find_by_name()` in
