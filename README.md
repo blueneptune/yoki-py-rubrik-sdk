@@ -20,7 +20,8 @@ keeps.
 > account.** Every call is covered by a test that fakes RSC's answers,
 > which proves the SDK does what those sources describe - not that RSC
 > agrees. `rubrik-probe` (below) checks it the first time, and asks RSC's
-> own schema about every name the SDK had to guess.
+> own schema about every name the SDK had to guess; `rubrik-sample` and
+> `rubrik-mask` bring real answers back, safely, to fix it from.
 
 ```python
 from datetime import UTC, datetime, timedelta
@@ -99,25 +100,50 @@ other way instead.
 Queries are retried on a timeout or a 429/502/503/504; mutations are
 sent once.
 
-## rubrik-probe
+## Running it on its own
 
-Run it the first time the SDK meets a real account, and after any change
-to the queries:
+Three commands work against a real RSC account without blt, from a
+checkout of this repository:
+
+| Command | What it does | Writes |
+|---|---|---|
+| `uv run rubrik-probe` | checks every name the SDK relies on against RSC's own schema, reads a sample, walks the last 24 hours | nothing |
+| `uv run rubrik-sample` | saves RSC's raw answers to the queries blt uses (and the schema types behind them) | `samples/raw/<time>/` - real names, git-ignored |
+| `uv run rubrik-mask` | masks the newest raw capture with your salt; refuses if anything would leak | `samples/masked/<time>/` - safe to commit or share |
+
+Set-up, once:
 
 ```
-RUBRIK_SERVICE_ACCOUNT=~/blt-reader.json uv run rubrik-probe
+uv sync
+cp .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(32))"   # your salt
+# in .env: RUBRIK_SERVICE_ACCOUNT=<path to the JSON file>, RUBRIK_MASK_SALT=<that salt>
 ```
 
-It signs in, asks RSC's schema whether every field, filter and sort name
-the SDK uses exists (and which wanted extras do), reads the 20 most
-recently changed series, walks the last 24 hours as a delta collection
-would, counts the clusters, and signs out. Each line is `ok` or `FAIL`
-with the reason.
+Then:
 
-What it prints is meant to be pasteable into a chat or a ticket:
-counts, field names, status and type values - never object names,
-locations, ids or the secret. `RUBRIK_PROBE_SAVE=/some/folder` also
-writes the raw answers there; those **do** contain names.
+```
+uv run rubrik-probe          # every line "ok"? its output is safe to paste as it is
+uv run rubrik-sample         # --limit 100 --hours 48 for more
+uv run rubrik-mask           # or: rubrik-mask samples/raw/<time> --out samples/masked/<name>
+```
+
+**The salt.** Masking replaces each name with an HMAC of it under your
+salt: `sql-prod-01` becomes `objectName-8c6e592c` in every file and
+every capture, so which job ran on which object on which cluster still
+shows - but without the salt nobody can check a guess ("is it
+sql-prod-01?") by masking it themselves. Keep it secret, and keep it the
+same between captures. It lives only in `.env`.
+
+**What is kept.** Statuses, types, severities and other Rubrik
+vocabulary (`KEEP_FIELDS` in `tools/mask.py`), timestamps, numbers,
+booleans, and RSC's schema descriptions. Every other string is masked,
+including fields nobody listed. UUIDs, IPv4 and e-mail addresses keep
+their shape. Before writing, the masker checks that no masked value also
+appears in a kept field; if one does, it writes nothing. A map back to
+the real names is written beside the raw capture, never the masked one.
+
+Read one masked file before committing it - see `samples/README.md`.
 
 ## What is not known
 

@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from rubrik_sdk import probe
+from rubrik_sdk.tools import probe
 
 from .conftest import BASE_URL, GRAPHQL_URL
 from .test_activity import _activity_series_node
@@ -60,6 +60,7 @@ def test_the_probe_reports_each_check_and_keeps_names_out_of_its_output(
         )
     )
     monkeypatch.setenv("RUBRIK_SERVICE_ACCOUNT", str(account))
+    monkeypatch.setenv("RUBRIK_ENV_FILE", str(tmp_path / "no.env"))
     monkeypatch.setenv("RUBRIK_PROBE_SAVE", str(tmp_path / "saved"))
     respx.post(f"{BASE_URL}/api/client_token").mock(
         return_value=httpx.Response(200, json={"access_token": "tok"})

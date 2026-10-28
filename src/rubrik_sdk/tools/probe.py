@@ -2,11 +2,13 @@
 and say what happened - including what RSC's own schema says about every
 name the SDK had to guess.
 
-    RUBRIK_SERVICE_ACCOUNT=~/blt-reader.json rubrik-probe
+    uv run rubrik-probe
 
-Optional: RUBRIK_CA_BUNDLE=/path/to/ca.pem (a proxy that re-signs TLS),
-RUBRIK_PROBE_SAVE=/some/folder to also write each raw answer there as
-JSON for a closer look. Reads only; stores nothing unless asked to.
+The service account file and, if needed, a CA bundle come from .env
+(RUBRIK_SERVICE_ACCOUNT, RUBRIK_CA_BUNDLE - see .env.example) or the
+environment. RUBRIK_PROBE_SAVE=/some/folder also writes each raw answer
+there. Reads only; stores nothing unless asked to - rubrik-sample is the
+command for keeping answers.
 
 What it prints is meant to be safe to paste into a chat or a ticket:
 counts, field names, status and type values - never object names,
@@ -25,15 +27,16 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from .activity import (
+from ..activity import (
     _ACTIVITY_SERIES_PAGE_DOCUMENT,
     FILTER_STARTED_AFTER,
     FILTER_UPDATED_AFTER,
     SORT_LAST_UPDATED,
     SORT_START_TIME,
 )
-from .auth import ServiceAccount
-from .client import RubrikClient
+from ..auth import ServiceAccount
+from ..client import RubrikClient
+from .config import load_config
 
 Check = tuple[str, Callable[[], str]]
 
@@ -178,18 +181,14 @@ def checks(rsc: RubrikClient, save: Path | None) -> list[Check]:
 
 
 def main() -> int:
-    path = os.environ.get("RUBRIK_SERVICE_ACCOUNT")
-    if not path:
-        print("Set RUBRIK_SERVICE_ACCOUNT to the service account's JSON file.", file=sys.stderr)
-        return 2
-    account = ServiceAccount.from_json_file(Path(path).expanduser())
-    ca = os.environ.get("RUBRIK_CA_BUNDLE")
+    config = load_config()
+    account = ServiceAccount.from_json_file(config.require_service_account())
     save_dir = os.environ.get("RUBRIK_PROBE_SAVE")
     save = Path(save_dir).expanduser() if save_dir else None
 
     print(f"RSC account: {account.base_url}  (service account {account.name or '?'})")
     failures = 0
-    with RubrikClient(account, ca_bundle=Path(ca) if ca else None) as rsc:
+    with RubrikClient(account, ca_bundle=config.ca_bundle) as rsc:
         for name, check in checks(rsc, save):
             try:
                 print(f"  ok    {name}: {check()}")

@@ -24,7 +24,9 @@ dependencies = [
 ]
 
 [project.scripts]
-rubrik-probe = "rubrik_sdk.probe:main"
+rubrik-probe = "rubrik_sdk.tools.probe:main"
+rubrik-sample = "rubrik_sdk.tools.sample:main"
+rubrik-mask = "rubrik_sdk.tools.mask:main"
 
 [project.urls]
 Homepage = "https://github.com/blueneptune/yoki-py-rubrik-sdk"
