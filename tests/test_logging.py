@@ -1,6 +1,6 @@
 """`configure_logging()` is the only place in this SDK that touches
 loguru's global sink list - everything else just emits log records through
-whatever `logger` an `RscClient` was constructed with (see `client.py`).
+whatever `logger` an `RubrikClient` was constructed with (see `client.py`).
 These tests always remove the sink they add (`logger.remove(sink_id)`),
 since loguru's `logger` is a process-wide singleton and a leftover sink
 would otherwise leak into every later test's output.
@@ -12,21 +12,21 @@ import io
 
 from loguru import logger
 
-from rubrik_rsc import RscClient, configure_logging
+from rubrik_sdk import RubrikClient, configure_logging
 
 
 def test_configure_logging_captures_this_packages_log_lines() -> None:
     stream = io.StringIO()
     sink_id = configure_logging(stream, level="DEBUG")
     try:
-        client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+        client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
         client.close()
     finally:
         logger.remove(sink_id)
 
     output = stream.getvalue()
-    assert "Initialized RscClient" in output
-    assert "Closing RscClient" in output
+    assert "Initialized RubrikClient" in output
+    assert "Closing RubrikClient" in output
 
 
 def test_configure_logging_defaults_to_filtering_out_other_packages() -> None:
@@ -56,6 +56,6 @@ def test_configure_logging_returns_a_removable_sink_id() -> None:
     sink_id = configure_logging(stream, level="DEBUG")
 
     logger.remove(sink_id)
-    RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
 
     assert stream.getvalue() == ""

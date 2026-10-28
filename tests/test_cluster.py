@@ -3,7 +3,7 @@ from typing import Any
 
 import respx
 
-from rubrik_rsc import ClusterManager, RscClient
+from rubrik_sdk import ClusterManager, RubrikClient
 
 from .conftest import GRAPHQL_URL, graphql_responder, make_page_info
 
@@ -70,7 +70,7 @@ def _cluster_page(
 
 @respx.mock
 def test_list_returns_a_single_page_of_clusters() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -103,7 +103,7 @@ def test_list_returns_a_single_page_of_clusters() -> None:
 
 @respx.mock
 def test_list_forwards_filter_and_sort_arguments_as_graphql_variables() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     route = respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {"Cluster": [_cluster_page(nodes=[], has_next_page=False, end_cursor=None)]}
@@ -123,7 +123,7 @@ def test_list_forwards_filter_and_sort_arguments_as_graphql_variables() -> None:
 
 @respx.mock
 def test_all_auto_paginates_across_multiple_pages() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -151,7 +151,7 @@ def test_all_auto_paginates_across_multiple_pages() -> None:
 
 @respx.mock
 def test_find_by_name_returns_matching_cluster_without_exhausting_pages() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -178,7 +178,7 @@ def test_find_by_name_returns_matching_cluster_without_exhausting_pages() -> Non
 
 @respx.mock
 def test_find_by_name_returns_none_when_no_cluster_matches() -> None:
-    client = RscClient("https://test-instance.my.rubrik.com", token="test-token")
+    client = RubrikClient(base_url="https://test-instance.my.rubrik.com", token="test-token")
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {

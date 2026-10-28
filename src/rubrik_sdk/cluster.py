@@ -24,13 +24,16 @@ into these models.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from .client import RscClient
 from .pagination import Page
 from .query import ConnectionQuery
+
+if TYPE_CHECKING:
+    from .client import RubrikClient
 
 _CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -209,7 +212,7 @@ class ClusterManager:
     site.
     """
 
-    def __init__(self, client: RscClient) -> None:
+    def __init__(self, client: RubrikClient) -> None:
         self._client = client
 
     def list(

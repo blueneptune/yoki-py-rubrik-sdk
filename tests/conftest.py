@@ -17,7 +17,7 @@ from typing import Any
 import httpx
 import pytest
 
-from rubrik_rsc import RscClient
+from rubrik_sdk import RubrikClient
 
 BASE_URL = "https://test-instance.my.rubrik.com"
 GRAPHQL_URL = f"{BASE_URL}/api/graphql"
@@ -46,8 +46,8 @@ def graphql_responder(
 
 
 @pytest.fixture
-def client() -> RscClient:
-    return RscClient(BASE_URL, token="test-token")
+def client() -> RubrikClient:
+    return RubrikClient(base_url=BASE_URL, token="test-token")
 
 
 def make_page_info(*, has_next_page: bool = False, end_cursor: str | None = None) -> dict[str, Any]:

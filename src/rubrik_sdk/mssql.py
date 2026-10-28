@@ -24,13 +24,16 @@ lookup handles unchanged.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from .client import RscClient
 from .common import CAMEL_CONFIG, ClusterReference, SlaDomainReference
 from .pagination import Collection, Page
 from .query import ConnectionQuery
+
+if TYPE_CHECKING:
+    from .client import RubrikClient
 
 
 class PathNode(BaseModel):
@@ -309,7 +312,7 @@ class MssqlDatabaseManager:
     """What you get back as `rsc.mssql_databases` from the `RSC` facade
     (see `facade.py`)."""
 
-    def __init__(self, client: RscClient) -> None:
+    def __init__(self, client: RubrikClient) -> None:
         self._client = client
 
     # `list()` (below) is defined last in this class body, not first: once a

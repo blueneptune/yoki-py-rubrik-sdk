@@ -41,7 +41,7 @@ def configure_logging(
     tests, so one test's sink doesn't leak into the next).
 
     `only_this_package=True` (the default) scopes the sink to log records
-    that originated in `rubrik_rsc` via loguru's `filter=` - if you already
+    that originated in `rubrik_sdk` via loguru's `filter=` - if you already
     use loguru elsewhere in your application and want one sink to show
     everything, pass `only_this_package=False` instead of calling this at
     all and just call `loguru.logger.add()` yourself.
