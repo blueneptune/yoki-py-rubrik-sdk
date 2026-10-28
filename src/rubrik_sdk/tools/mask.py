@@ -29,7 +29,9 @@ as RSC answers and can serve as test fixtures.
 
 Before anything is written, every string left unmasked is searched for
 the values that were masked; if one turns up there (a status field
-holding a hostname, say), nothing is written and the command fails.
+holding a hostname, say), nothing is written and the command fails,
+naming the fields and files involved - not the value, so the message can
+be pasted; `--show-leaks` adds the values, for your own terminal.
 A map from pseudonym back to original is written beside the *raw*
 samples (never beside the masked ones), for your own look-ups.
 
@@ -107,8 +109,13 @@ class Masker:
     keep_subtrees: frozenset[str] = KEEP_SUBTREES
     # pseudonym -> original, for the private map
     mapping: dict[str, str] = field(default_factory=dict)
-    # strings left as they were - where a leak would be
-    kept: list[str] = field(default_factory=list)
+    # original -> the fields it was masked in
+    masked_in: dict[str, set[str]] = field(default_factory=dict)
+    # (file, field, value) for each string left as it was - where a leak
+    # would be
+    kept: list[tuple[str, str, str]] = field(default_factory=list)
+    # the file being masked, for the leak report
+    source: str = ""
 
     def _digest(self, value: str) -> bytes:
         return hmac.new(self.salt.encode(), value.encode(), hashlib.sha256).digest()
@@ -125,6 +132,7 @@ class Masker:
         else:
             masked = f"{label or 'value'}-{digest.hex()[:8]}"
         self.mapping[masked] = value
+        self.masked_in.setdefault(value, set()).add(f"{label or 'value'} ({self.source})")
         return masked
 
     def mask(self, data: Any, key: str = "") -> Any:
@@ -134,7 +142,7 @@ class Masker:
             return [self.mask(item, key) for item in data]
         if isinstance(data, str):
             if key in self.keep_fields or _TIMESTAMP.match(data) or len(data) < MIN_MASK_LENGTH:
-                self.kept.append(data)
+                self.kept.append((self.source, key, data))
                 return data
             return self.pseudonym(data, key)
         return data  # numbers, booleans, null
@@ -147,15 +155,42 @@ def _is_ipv4(value: str) -> bool:
         return False
 
 
-def leaks(kept: Iterable[str], originals: Iterable[str]) -> list[str]:
+@dataclass(frozen=True)
+class Leak:
+    value: str
+    masked_in: tuple[str, ...]  # "field (file)" where it was masked
+    kept_field: str
+    kept_file: str
+
+    def describe(self, *, show_value: bool = False) -> str:
+        where = ", ".join(self.masked_in)
+        text = (
+            f"a value masked in {where} also appears in kept field "
+            f"`{self.kept_field}` ({self.kept_file})"
+        )
+        return f"{text}: {self.value!r}" if show_value else text
+
+
+def leaks(kept: Iterable[tuple[str, str, str]], masked_in: dict[str, set[str]]) -> list[Leak]:
     """Masked originals that still appear inside a string left as it was
-    - a vocabulary field holding a customer's name, say. (Pseudonyms are
-    not searched: they are made from the field name and a hash.)"""
-    kept_text = "\n".join(set(kept))
-    return sorted({v for v in originals if len(v) > MIN_MASK_LENGTH and v in kept_text})
+    - a vocabulary field holding a customer's name, say. Matched as a whole
+    word, so `1028` is not found inside `2026-10-28`. (Pseudonyms are not
+    searched: they are made from the field name and a hash.)"""
+    candidates = [v for v in masked_in if len(v) > MIN_MASK_LENGTH]
+    found: dict[tuple[str, str, str], Leak] = {}
+    for source, key, text in set(kept):
+        for value in candidates:
+            if value in text and re.search(
+                rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])", text
+            ):
+                found.setdefault(
+                    (value, key, source),
+                    Leak(value, tuple(sorted(masked_in[value])), key, source),
+                )
+    return sorted(found.values(), key=lambda leak: (leak.kept_file, leak.kept_field, leak.value))
 
 
-def mask_folder(raw: Path, out: Path, salt: str) -> dict[str, int]:
+def mask_folder(raw: Path, out: Path, salt: str, *, show_leaks: bool = False) -> dict[str, int]:
     """Mask every .json file in `raw` into `out`. Writes nothing if any
     original value would survive."""
     masker = Masker(salt)
@@ -163,15 +198,20 @@ def mask_folder(raw: Path, out: Path, salt: str) -> dict[str, int]:
     for source in sorted(raw.glob("*.json")):
         if source.name == "mask-map.json":
             continue
+        masker.source = source.name
         masked = masker.mask(json.loads(source.read_text()))
         results[out / source.name] = json.dumps(masked, indent=2, sort_keys=False)
 
-    survived = leaks(masker.kept, masker.mapping.values())
+    survived = leaks(masker.kept, masker.masked_in)
     if survived:
+        lines = "\n".join(f"  {leak.describe(show_value=show_leaks)}" for leak in survived)
         raise SystemExit(
             f"Not written: {len(survived)} masked value(s) also appear in fields kept as "
-            "vocabulary (KEEP_FIELDS), so masking would not hide them. Nothing was written. "
-            "Look for them in the raw files and take that field off KEEP_FIELDS."
+            f"vocabulary (KEEP_FIELDS), so masking would not hide them. Nothing was written.\n"
+            f"{lines}\n"
+            "If the kept field can hold customer data, take it off KEEP_FIELDS; if the masked "
+            "value is really Rubrik's vocabulary (a status, say), add its field to KEEP_FIELDS."
+            + ("" if show_leaks else " --show-leaks prints the values (keep that output private).")
         )
 
     out.mkdir(parents=True, exist_ok=True)
@@ -193,6 +233,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="rubrik-mask", description=__doc__.split("\n")[0])
     parser.add_argument("raw", nargs="?", type=Path, help="a capture folder (default: the newest)")
     parser.add_argument("--out", type=Path, help="where to write (default: under the masked dir)")
+    parser.add_argument(
+        "--show-leaks", action="store_true", help="print leaked values (private: real names)"
+    )
     args = parser.parse_args(argv)
 
     config = load_config()
@@ -202,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     if out.resolve() == raw.resolve():
         raise SystemExit("--out must not be the raw folder.")
 
-    counts = mask_folder(raw, out, salt)
+    counts = mask_folder(raw, out, salt, show_leaks=args.show_leaks)
     print(f"Masked {counts['files']} file(s), {counts['values_masked']} distinct value(s):")
     print(f"  {raw}  ->  {out}")
     print("  leak check: no original value appears in the masked files")

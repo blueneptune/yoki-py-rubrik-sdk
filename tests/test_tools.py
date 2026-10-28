@@ -8,7 +8,7 @@ import pytest
 from sdk_primer import ServerError
 
 from rubrik_sdk.tools.config import load_config, read_env_file
-from rubrik_sdk.tools.mask import Masker, mask_folder
+from rubrik_sdk.tools.mask import Masker, leaks, mask_folder
 from rubrik_sdk.tools.sample import SCHEMA_TYPES, run_captures
 
 SALT = "a-test-salt-that-is-long-enough"
@@ -138,9 +138,24 @@ def test_nothing_is_written_if_a_masked_value_sits_in_a_kept_field(tmp_path: Pat
     )
     out = tmp_path / "masked" / raw.name
 
-    with pytest.raises(SystemExit, match="Nothing was written"):
+    with pytest.raises(SystemExit, match="Nothing was written") as failure:
         mask_folder(raw, out, SALT)
     assert not out.exists()
+    message = str(failure.value)
+    assert "objectName (answer-0.json)" in message and "`lastActivityStatus`" in message
+    assert "sql01" not in message
+
+    with pytest.raises(SystemExit, match="'sql01'"):
+        mask_folder(raw, out, SALT, show_leaks=True)
+
+
+def test_a_value_inside_a_longer_word_is_not_a_leak() -> None:
+    masker = Masker(SALT)
+    masker.source = "a.json"
+    masker.mask({"objectName": "1028", "startTime": "2026-10-28T10:28:00Z", "x": "1028"})
+    masker.mask({"status": "Backup of 10280 done"})
+
+    assert leaks(masker.kept, masker.masked_in) == []
 
 
 # -- sampling ----------------------------------------------------------------
