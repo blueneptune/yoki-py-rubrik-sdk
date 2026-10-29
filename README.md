@@ -172,7 +172,7 @@ rubrik-sdk = { git = "https://github.com/blueneptune/yoki-py-rubrik-sdk.git", ta
 ## Development and releases
 
 See [docs/development.md](docs/development.md): how it is built, adding
-a query, the checks, and the weekly release cadence it shares with blt
+a query, the checks, and how changes are merged and released, as for blt
 and the other yoki SDKs.
 
 ```
