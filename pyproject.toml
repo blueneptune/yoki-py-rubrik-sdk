@@ -1,7 +1,7 @@
 [project]
-name = "rubrik-rsc-sdk-for-python"
-version = "0.1.0"
-description = "Facade-of-facades Python SDK for Rubrik Security Cloud's (RSC) GraphQL API."
+name = "rubrik-sdk"
+version = "0.2.0"
+description = "A small, read-only-by-default SDK for Rubrik Security Cloud's (RSC) GraphQL API, built on sdk-primer-core."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -17,14 +17,25 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
+    "sdk-primer",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "pydantic>=2.13.4",
 ]
 
+[project.scripts]
+rubrik-probe = "rubrik_sdk.tools.probe:main"
+rubrik-sample = "rubrik_sdk.tools.sample:main"
+rubrik-mask = "rubrik_sdk.tools.mask:main"
+
 [project.urls]
-Homepage = "https://github.com/blueneptune/rubrik-rsc-sdk-for-python"
-Repository = "https://github.com/blueneptune/rubrik-rsc-sdk-for-python"
+Homepage = "https://github.com/blueneptune/yoki-py-rubrik-sdk"
+Repository = "https://github.com/blueneptune/yoki-py-rubrik-sdk"
+
+[tool.uv.sources]
+# The transport underneath: retries, typed exceptions, request logging,
+# the service-account token exchange.
+sdk-primer = { git = "https://github.com/blueneptune/sdk-primer-core.git", tag = "v0.1.0" }
 
 [build-system]
 requires = ["hatchling"]
@@ -38,8 +49,12 @@ build-backend = "hatchling.build"
 # artifacts regardless of git history.
 exclude = [".idea", ".venv", ".mypy_cache", ".ruff_cache", ".pytest_cache", "*.iml"]
 
+[tool.hatch.metadata]
+# sdk-primer is a git dependency, not a PyPI one.
+allow-direct-references = true
+
 [tool.hatch.build.targets.wheel]
-packages = ["src/rubrik_rsc"]
+packages = ["src/rubrik_sdk"]
 
 [dependency-groups]
 dev = [
@@ -51,11 +66,11 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "--cov=rubrik_rsc --cov-report=term-missing"
+addopts = "--cov=rubrik_sdk --cov-report=term-missing"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["src/rubrik_rsc"]
+source = ["src/rubrik_sdk"]
 
 [tool.ruff]
 line-length = 100

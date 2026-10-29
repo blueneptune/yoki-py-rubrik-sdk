@@ -10,8 +10,8 @@ from typing import Any
 import respx
 from pydantic import BaseModel
 
-from rubrik_rsc import RscClient
-from rubrik_rsc.query import ConnectionQuery
+from rubrik_sdk import RubrikClient
+from rubrik_sdk.query import ConnectionQuery
 
 from .conftest import GRAPHQL_URL, graphql_responder, make_page_info
 
@@ -50,7 +50,7 @@ def _widget_page(*, ids: list[str], has_next_page: bool, end_cursor: str | None)
 
 
 @respx.mock
-def test_fetch_page_parses_edges_and_page_info(client: RscClient) -> None:
+def test_fetch_page_parses_edges_and_page_info(client: RubrikClient) -> None:
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {"Widgets": [_widget_page(ids=["1", "2"], has_next_page=True, end_cursor="c1")]}
@@ -65,7 +65,7 @@ def test_fetch_page_parses_edges_and_page_info(client: RscClient) -> None:
 
 
 @respx.mock
-def test_fetch_page_drops_none_variables(client: RscClient) -> None:
+def test_fetch_page_drops_none_variables(client: RubrikClient) -> None:
     route = respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {"Widgets": [_widget_page(ids=[], has_next_page=False, end_cursor=None)]}
@@ -79,7 +79,7 @@ def test_fetch_page_drops_none_variables(client: RscClient) -> None:
 
 
 @respx.mock
-def test_fetch_all_walks_every_page_until_has_next_page_is_false(client: RscClient) -> None:
+def test_fetch_all_walks_every_page_until_has_next_page_is_false(client: RubrikClient) -> None:
     respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -97,7 +97,7 @@ def test_fetch_all_walks_every_page_until_has_next_page_is_false(client: RscClie
 
 
 @respx.mock
-def test_fetch_all_passes_end_cursor_as_next_after(client: RscClient) -> None:
+def test_fetch_all_passes_end_cursor_as_next_after(client: RubrikClient) -> None:
     route = respx.post(GRAPHQL_URL).mock(
         side_effect=graphql_responder(
             {
@@ -118,7 +118,7 @@ def test_fetch_all_passes_end_cursor_as_next_after(client: RscClient) -> None:
 
 
 @respx.mock
-def test_fetch_all_stops_on_next_page_true_but_missing_end_cursor(client: RscClient) -> None:
+def test_fetch_all_stops_on_next_page_true_but_missing_end_cursor(client: RubrikClient) -> None:
     """Defensive: a malformed/edge-case response claiming more pages exist
     but without a cursor to fetch them with should stop rather than loop
     forever re-requesting the same page."""

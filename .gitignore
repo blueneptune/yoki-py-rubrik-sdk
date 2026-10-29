@@ -9,3 +9,8 @@ htmlcov/
 dist/
 *.egg-info/
 .idea/
+
+# Tool settings and real data: never committed
+.env
+samples/raw/
+*service-account*.json

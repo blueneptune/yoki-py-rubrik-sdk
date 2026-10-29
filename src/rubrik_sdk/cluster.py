@@ -24,26 +24,27 @@ into these models.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel
 
-from .client import RscClient
+from .common import CAMEL_CONFIG
 from .pagination import Page
 from .query import ConnectionQuery
 
-_CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+if TYPE_CHECKING:
+    from .client import RubrikClient
 
 
 class CloudInfo(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     region: str | None = None
     vendor: str | None = None
 
 
 class ClusterNode(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     id: str
     ip_address: str | None = None
@@ -53,14 +54,14 @@ class ClusterNode(BaseModel):
 
 
 class ClusterNodeConnection(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     count: int
     nodes: list[ClusterNode] = []
 
 
 class GeoLocation(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     address: str | None = None
     latitude: float | None = None
@@ -68,7 +69,7 @@ class GeoLocation(BaseModel):
 
 
 class ClusterMetric(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     available_capacity: float | None = None
     used_capacity: float | None = None
@@ -85,7 +86,7 @@ class ClusterMetric(BaseModel):
 
 
 class Cluster(BaseModel):
-    model_config = _CAMEL_CONFIG
+    model_config = CAMEL_CONFIG
 
     id: str
     name: str
@@ -209,7 +210,7 @@ class ClusterManager:
     site.
     """
 
-    def __init__(self, client: RscClient) -> None:
+    def __init__(self, client: RubrikClient) -> None:
         self._client = client
 
     def list(
