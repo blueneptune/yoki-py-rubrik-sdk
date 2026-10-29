@@ -302,3 +302,45 @@ def test_a_numeric_series_id_is_read_as_a_string() -> None:
 
     assert series.id == "11352988"
     assert series.key == "c1:a1"
+
+
+def test_a_series_as_rsc_sends_it() -> None:
+    # Shaped like the masked samples from a live account (2026-10-28).
+    series = ActivitySeries.model_validate(
+        {
+            "id": 11379126,
+            "fid": "11dba1b6-7cea-4cf1-b629-3b505c6803b4",
+            "activitySeriesId": "444d0adc-62ec-4341-a809-db241534671e",
+            "startTime": "2026-10-28T19:47:40.516Z",
+            "lastUpdated": "2026-10-28T19:47:41.830Z",
+            "lastActivityType": "Backup",
+            "lastActivityStatus": "PARTIAL_SUCCESS",
+            "lastActivityMessage": "Completed backup with warnings",
+            "failureReason": "",
+            "causeErrorCode": "",
+            "causeErrorMessage": "",
+            "objectType": "VmwareVm",
+            "severity": "Warning",
+            "progress": "14%",
+            "slaDomainName": "",
+            "attemptNumber": 1,
+            "isOnDemand": False,
+            "dataTransferred": 52428800,
+            "logicalSize": 107374182400,
+            "effectiveThroughput": 1048576,
+            "cluster": {"id": "cff9b6ff-ac06-4707-b23c-829c814e12e4", "name": "east"},
+        }
+    )
+
+    assert series.id == "11379126"
+    assert series.sla_domain_name is None
+    assert series.failure_reason is None and series.cause_error_message is None
+    assert series.last_activity_message == "Completed backup with warnings"
+    assert series.percent_complete == 14.0
+    assert series.logical_size == 107374182400 and series.attempt_number == 1
+    assert not series.is_active
+
+
+def test_percent_complete_is_none_without_a_progress() -> None:
+    assert ActivitySeries(id="1").percent_complete is None
+    assert ActivitySeries(id="1", progress="n/a").percent_complete is None

@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from loguru import logger
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 
 from .common import CAMEL_CONFIG, ClusterReference
 from .pagination import Page
@@ -75,10 +75,47 @@ class ActivitySeries(BaseModel):
     object_id: str | None = None
     object_type: str | None = None
     severity: str | None = None
+    # The latest event's message, and why a failed series failed, as RSC
+    # words them.
+    last_activity_message: str | None = None
+    failure_reason: str | None = None
+    cause_error_code: str | None = None
+    cause_error_message: str | None = None
+    cause_error_reason: str | None = None
+    cause_error_remedy: str | None = None
     progress: str | None = None
     sla_domain_name: str | None = None
+    attempt_number: int | None = None
+    is_on_demand: bool | None = None
+    # Bytes, and bytes per second.
+    data_transferred: int | None = None
+    logical_size: int | None = None
+    effective_throughput: int | None = None
     cluster: ClusterReference | None = None
     activity_connection: ActivityConnection | None = None
+
+    @field_validator(
+        "sla_domain_name",
+        "last_activity_message",
+        "failure_reason",
+        "cause_error_code",
+        "cause_error_message",
+        "cause_error_reason",
+        "cause_error_remedy",
+        mode="after",
+    )
+    @classmethod
+    def _blank_is_none(cls, value: str | None) -> str | None:
+        # RSC sends "" for a series with no SLA domain, or no failure.
+        return value or None
+
+    @property
+    def percent_complete(self) -> float | None:
+        """`progress` ("14%") as a number, or None when RSC gives none."""
+        try:
+            return float((self.progress or "").rstrip("%"))
+        except ValueError:
+            return None
 
     @property
     def is_active(self) -> bool:
@@ -109,9 +146,46 @@ class Taskchain(BaseModel):
     progressed_at: str | None = None
 
 
+# What both activity series queries ask for about each series. The
+# failure, size and attempt fields were confirmed in RSC's schema by
+# rubrik-sample (2026-10-28). `cluster { ... }` stays last: rubrik-probe
+# reads the field names before it to check them against the schema.
+_SERIES_FIELDS = """\
+        id
+        fid
+        activitySeriesId
+        startTime
+        lastUpdated
+        lastActivityType
+        lastActivityStatus
+        lastActivityMessage
+        failureReason
+        causeErrorCode
+        causeErrorMessage
+        causeErrorReason
+        causeErrorRemedy
+        location
+        objectName
+        objectId
+        objectType
+        severity
+        progress
+        slaDomainName
+        attemptNumber
+        isOnDemand
+        dataTransferred
+        logicalSize
+        effectiveThroughput
+        cluster {
+          id
+          name
+        }
+"""
+
 # Real query name/variables/field selection from the schema's
 # `ActivitySeriesConnection.all.query.graphql`, used as-is.
-_ACTIVITY_SERIES_DOCUMENT = """
+_ACTIVITY_SERIES_DOCUMENT = (
+    """
 query ActivitySeriesConnection(
   $after: String
   $filters: ActivitySeriesFilter
@@ -128,25 +202,9 @@ query ActivitySeriesConnection(
   ) {
     edges {
       node {
-        id
-        fid
-        activitySeriesId
-        startTime
-        lastUpdated
-        lastActivityType
-        lastActivityStatus
-        location
-        objectName
-        objectId
-        objectType
-        severity
-        progress
-        slaDomainName
-        cluster {
-          id
-          name
-        }
-        activityConnection {
+"""
+    + _SERIES_FIELDS
+    + """        activityConnection {
           nodes {
             id
             message
@@ -164,11 +222,13 @@ query ActivitySeriesConnection(
   }
 }
 """
+)
 
 # The same query without the event timeline - what collection uses. Each
 # series can carry many events; a page of 200 with all of them would be
 # far heavier than the 200 rows a collector wants.
-_ACTIVITY_SERIES_PAGE_DOCUMENT = """
+_ACTIVITY_SERIES_PAGE_DOCUMENT = (
+    """
 query ActivitySeriesPage(
   $after: String
   $filters: ActivitySeriesFilter
@@ -185,25 +245,9 @@ query ActivitySeriesPage(
   ) {
     edges {
       node {
-        id
-        fid
-        activitySeriesId
-        startTime
-        lastUpdated
-        lastActivityType
-        lastActivityStatus
-        location
-        objectName
-        objectId
-        objectType
-        severity
-        progress
-        slaDomainName
-        cluster {
-          id
-          name
-        }
-      }
+"""
+    + _SERIES_FIELDS
+    + """      }
     }
     pageInfo {
       endCursor
@@ -212,6 +256,7 @@ query ActivitySeriesPage(
   }
 }
 """
+)
 
 # Names in RSC's schema that collection depends on and the PowerShell
 # SDK's examples do not confirm. Kept here, together, so a correction
