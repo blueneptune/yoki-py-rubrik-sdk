@@ -4,6 +4,7 @@ from pathlib import Path
 import httpx
 import pytest
 import respx
+from pydantic import SecretStr
 
 from rubrik_sdk import RubrikClient, RubrikError, ServiceAccount
 
@@ -17,7 +18,7 @@ SESSION_URL = f"{BASE_URL}/api/session"
 def service_account() -> ServiceAccount:
     return ServiceAccount(
         client_id="client-123",
-        client_secret="s3cr3t",
+        client_secret=SecretStr("s3cr3t"),
         access_token_uri=TOKEN_URI,
         name="test-service-account",
     )
@@ -54,7 +55,7 @@ def test_base_url_strips_token_endpoint_suffix(service_account: ServiceAccount) 
 
 def test_base_url_refuses_an_unexpected_token_address() -> None:
     account = ServiceAccount(
-        client_id="c", client_secret="s", access_token_uri="https://example.com/weird"
+        client_id="c", client_secret=SecretStr("s"), access_token_uri="https://example.com/weird"
     )
 
     with pytest.raises(RubrikError, match="does not end with"):

@@ -164,7 +164,7 @@ def test_a_value_inside_a_longer_word_is_not_a_leak() -> None:
 def test_captures_are_saved_one_file_each_and_refusals_recorded(tmp_path: Path) -> None:
     asked: list[str] = []
 
-    def execute(document: str, variables: dict[str, Any], *, operation_name: str) -> dict:
+    def execute(document: str, variables: dict[str, Any], *, operation_name: str) -> dict[str, Any]:
         asked.append(operation_name)
         if operation_name == "SlaDomains":
             raise ServerError("no permission")

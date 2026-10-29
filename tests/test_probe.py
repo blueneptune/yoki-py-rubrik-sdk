@@ -12,7 +12,7 @@ from .conftest import BASE_URL, GRAPHQL_URL
 from .test_activity import _activity_series_node
 from .test_cluster import _cluster_node
 
-TYPES: dict[str, dict[str, Any]] = {
+TYPES: dict[str, dict[str, Any] | None] = {
     "ActivitySeries": {
         "fields": [{"name": n} for n in probe._SELECTED_FIELDS + ["endTime", "clusterUuid"]]
     },
