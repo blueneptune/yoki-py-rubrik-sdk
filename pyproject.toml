@@ -1,6 +1,6 @@
 [project]
 name = "rubrik-sdk"
-version = "0.2.0"
+version = "0.3.0"
 description = "A small, read-only-by-default SDK for Rubrik Security Cloud's (RSC) GraphQL API, built on sdk-primer-core."
 readme = "README.md"
 license = "MIT"

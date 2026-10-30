@@ -45,9 +45,9 @@ _TYPE_QUERY = """
 query ProbeType($name: String!) {
   __type(name: $name) {
     name
-    fields { name }
+    fields(includeDeprecated: true) { name isDeprecated }
     inputFields { name }
-    enumValues { name }
+    enumValues(includeDeprecated: true) { name }
   }
 }
 """
@@ -170,11 +170,15 @@ def checks(rsc: RubrikClient, save: Path | None) -> list[Check]:
         return f"{count} series changed in the last 24 h, {pages} page(s)"
 
     def object_fields() -> str:
-        have = names(schema("Snappable")["fields"])
+        fields = schema("Snappable")["fields"] or []
+        have = names(fields)
+        deprecated = {f["name"] for f in fields if f.get("isDeprecated")}
         missing = [f for f in _OBJECT_SELECTED if f not in have]
+        old = [f for f in _OBJECT_SELECTED if f in deprecated]
         if missing:
             raise LookupError(f"MISSING: {', '.join(missing)}")
-        return f"all {len(_OBJECT_SELECTED)} selected fields exist"
+        note = f"; deprecated: {', '.join(old)}" if old else ""
+        return f"all {len(_OBJECT_SELECTED)} selected fields exist{note}"
 
     def object_enums() -> str:
         found = []
@@ -194,7 +198,7 @@ def checks(rsc: RubrikClient, save: Path | None) -> list[Check]:
             f"{len(objects)} read; with fid {sum(bool(o.fid) for o in objects)}, "
             f"with SLA domain {sum(bool(o.sla_domain) for o in objects)}, "
             f"with cluster {sum(bool(o.cluster) for o in objects)}, "
-            f"with org {sum(bool(o.org_name) for o in objects)}"
+            f"with org {sum(bool(o.org_id) for o in objects)}"
         )
 
     def inventory() -> str:

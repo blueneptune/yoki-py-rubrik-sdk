@@ -46,7 +46,7 @@ class InventoryObject(BaseModel):
     location: str | None = None
     # ACTIVE; RELIC once gone from its source but still holding snapshots.
     object_state: str | None = None
-    # PROTECTED, NO_SLA, DO_NOT_PROTECT, ...
+    # Protected, NoSla, DoNotProtect
     protection_status: str | None = None
     # IN_COMPLIANCE, OUT_OF_COMPLIANCE, UNPROTECTED, ...
     compliance_status: str | None = None
@@ -54,8 +54,8 @@ class InventoryObject(BaseModel):
     replication_compliance_status: str | None = None
     sla_domain: SlaDomainReference | None = None
     cluster: ClusterReference | None = None
+    # The RSC organisation it belongs to, on a multi-tenant account.
     org_id: str | None = None
-    org_name: str | None = None
     protected_on: datetime | None = None
     last_snapshot: datetime | None = None
     latest_archival_snapshot: datetime | None = None
@@ -76,7 +76,7 @@ class InventoryObject(BaseModel):
     # When RSC computed this row.
     pull_time: datetime | None = None
 
-    @field_validator("location", "org_name", mode="after")
+    @field_validator("location", mode="after")
     @classmethod
     def _blank_is_none(cls, value: str | None) -> str | None:
         return value or None
@@ -115,7 +115,6 @@ _OBJECT_FIELDS = """\
         archivalComplianceStatus
         replicationComplianceStatus
         orgId
-        orgName
         protectedOn
         lastSnapshot
         latestArchivalSnapshot
