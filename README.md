@@ -57,6 +57,7 @@ blt calls an activity series a **job**, so this SDK does too: `rsc.jobs`.
 | | `sample(limit)` | same, newest first | written, not run |
 | | `list` / `all` / `for_object(fid)` | `activitySeriesConnection`, with events | written, not run |
 | | `status(taskchain_id)` | `getKorgTaskchainStatus` | written, not run |
+| `rsc.inventory` | `iter_pages(filter=)` / `all` / `sample(limit)` - every object, protected or not, with SLA domain, compliance, last snapshot, sizes | `snappableConnection` (the Object Compliance report's data) | written, not run |
 | `rsc.clusters` | `list` / `all` / `find_by_name` | `clusterConnection` | written, not run |
 | `rsc.sla_domains` | `list` / `all` / `find_by_name` | `slaDomains` | written, not run |
 | | `assign_to_objects` - **a change** | `assignSlasForSnappableHierarchies` | written, not run |
@@ -107,7 +108,7 @@ checkout of this repository:
 
 | Command | What it does | Writes |
 |---|---|---|
-| `uv run rubrik-probe` | checks every name the SDK relies on against RSC's own schema, reads a sample, walks the last 24 hours | nothing |
+| `uv run rubrik-probe` | checks every name the SDK relies on against RSC's own schema, reads a sample, walks the last 24 hours and up to 5,000 inventory objects (counts by type and protection only) | nothing |
 | `uv run rubrik-sample` | saves RSC's raw answers to the queries blt uses (and the schema types behind them) | `samples/raw/<time>/` - real names, git-ignored |
 | `uv run rubrik-mask` | masks the newest raw capture with your salt; refuses if anything would leak | `samples/masked/<time>/` - safe to commit or share |
 

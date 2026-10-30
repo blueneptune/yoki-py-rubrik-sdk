@@ -65,6 +65,12 @@ KEEP_FIELDS = frozenset(
         "objectType",
         "severity",
         "progress",
+        # inventory objects
+        "objectState",
+        "protectionStatus",
+        "complianceStatus",
+        "archivalComplianceStatus",
+        "replicationComplianceStatus",
         # clusters, SLA domains, snapshots
         "status",
         "subStatus",

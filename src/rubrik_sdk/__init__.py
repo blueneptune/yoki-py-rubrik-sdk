@@ -8,6 +8,7 @@ from .auth import ServiceAccount
 from .client import RubrikClient
 from .cluster import Cluster, ClusterManager, ClusterQuery
 from .errors import ChangesNotAllowed, GraphQLError, RubrikError
+from .inventory import InventoryManager, InventoryObject
 from .logging import configure_logging
 from .mssql import (
     MssqlDatabase,
@@ -31,6 +32,8 @@ __all__ = [
     "Collection",
     "ConnectionQuery",
     "GraphQLError",
+    "InventoryManager",
+    "InventoryObject",
     "MssqlDatabase",
     "MssqlDatabaseDetails",
     "MssqlDatabaseManager",

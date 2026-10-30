@@ -35,6 +35,7 @@ from ..activity import (
 from ..auth import ServiceAccount
 from ..client import RubrikClient
 from ..cluster import ClusterQuery
+from ..inventory import _INVENTORY_PAGE_DOCUMENT
 from ..sla_domain import SlaDomainQuery
 from .config import load_config
 
@@ -56,6 +57,11 @@ SCHEMA_TYPES = (
     "ActivityStatusEnum",
     "ActivityTypeEnum",
     "ActivityObjectTypeEnum",
+    "Snappable",
+    "SnappableFilterInput",
+    "ProtectionStatusEnum",
+    "ComplianceStatusEnum",
+    "ObjectState",
 )
 
 Capture = tuple[str, str, str, dict[str, Any]]  # file name, operation, document, variables
@@ -85,6 +91,7 @@ def captures(limit: int, hours: float, now: datetime) -> list[Capture]:
             _ACTIVITY_SERIES_DOCUMENT,
             {"first": min(limit, 10), "sortBy": SORT_LAST_UPDATED, "sortOrder": "DESC"},
         ),
+        ("inventory", "InventoryPage", _INVENTORY_PAGE_DOCUMENT, {"first": limit}),
         ("clusters", ClusterQuery.operation_name, ClusterQuery.document, {"first": limit}),
         ("sla-domains", SlaDomainQuery.operation_name, SlaDomainQuery.document, {"first": limit}),
     ]

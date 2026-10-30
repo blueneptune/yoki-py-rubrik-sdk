@@ -36,6 +36,7 @@ from ..activity import (
 )
 from ..auth import ServiceAccount
 from ..client import RubrikClient
+from ..inventory import _OBJECT_FIELDS
 from .config import load_config
 
 Check = tuple[str, Callable[[], str]]
@@ -58,6 +59,15 @@ _SELECTED_FIELDS = [
     .split("cluster {", 1)[0]
     .split()
 ] + ["cluster"]
+
+# Fields of Snappable the inventory query selects.
+_OBJECT_SELECTED = [line.strip() for line in _OBJECT_FIELDS.split("slaDomain {", 1)[0].split()] + [
+    "slaDomain",
+    "cluster",
+]
+# How far the inventory check walks: enough for a picture, not the whole
+# account.
+_INVENTORY_PAGES = 25
 
 # Fields blt would like next, if the schema has them.
 _WANTED_FIELDS = [
@@ -159,6 +169,53 @@ def checks(rsc: RubrikClient, save: Path | None) -> list[Check]:
                 return f"{count} series changed in the last 24 h (stopped after {pages} pages)"
         return f"{count} series changed in the last 24 h, {pages} page(s)"
 
+    def object_fields() -> str:
+        have = names(schema("Snappable")["fields"])
+        missing = [f for f in _OBJECT_SELECTED if f not in have]
+        if missing:
+            raise LookupError(f"MISSING: {', '.join(missing)}")
+        return f"all {len(_OBJECT_SELECTED)} selected fields exist"
+
+    def object_enums() -> str:
+        found = []
+        for name in ("ProtectionStatusEnum", "ComplianceStatusEnum", "ObjectState"):
+            try:
+                found.append(f"{name}: {', '.join(sorted(names(schema(name)['enumValues'])))}")
+            except LookupError as exc:
+                found.append(str(exc))
+        return "; ".join(found)
+
+    def inventory_sample() -> str:
+        objects = rsc.inventory.sample(20)
+        keep("inventory-sample", [o.model_dump(mode="json") for o in objects])
+        if not objects:
+            return "no objects at all"
+        return (
+            f"{len(objects)} read; with fid {sum(bool(o.fid) for o in objects)}, "
+            f"with SLA domain {sum(bool(o.sla_domain) for o in objects)}, "
+            f"with cluster {sum(bool(o.cluster) for o in objects)}, "
+            f"with org {sum(bool(o.org_name) for o in objects)}"
+        )
+
+    def inventory() -> str:
+        count = pages = 0
+        types: Counter[str | None] = Counter()
+        protection: Counter[str | None] = Counter()
+        states: Counter[str | None] = Counter()
+        for page in rsc.inventory.iter_pages():
+            pages += 1
+            count += len(page)
+            types.update(o.object_type for o in page)
+            protection.update(o.protection_status for o in page)
+            states.update(o.object_state for o in page)
+            if pages >= _INVENTORY_PAGES:
+                break
+        whole = "all of it" if pages < _INVENTORY_PAGES else f"stopped after {pages} pages"
+        return (
+            f"{count} objects ({whole}): types {dict(types.most_common())}; "
+            f"protection {dict(protection)}; states {dict(states)}"
+        )
+
     def clusters() -> str:
         found = list(rsc.clusters.all())
         return f"{len(found)} cluster(s): statuses {dict(Counter(c.status for c in found))}"
@@ -172,6 +229,10 @@ def checks(rsc: RubrikClient, save: Path | None) -> list[Check]:
         ("newest series", sample),
         ("delta, last 24 h", delta),
         ("clusters", clusters),
+        ("Snappable fields", object_fields),
+        ("inventory enums", object_enums),
+        ("inventory sample", inventory_sample),
+        ("inventory", inventory),
     ]
 
 
