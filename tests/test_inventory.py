@@ -17,9 +17,8 @@ def _object_node(*, id: str, name: str, **extra: Any) -> dict[str, Any]:  # noqa
         "objectType": "VmwareVirtualMachine",
         "location": "vcenter-01",
         "objectState": "ACTIVE",
-        "protectionStatus": "PROTECTED",
+        "protectionStatus": "Protected",
         "complianceStatus": "IN_COMPLIANCE",
-        "orgName": "",
         "lastSnapshot": "2024-06-01T01:00:00.000Z",
         "totalSnapshots": 42,
         "logicalBytes": 42949672960,
@@ -108,11 +107,10 @@ def test_an_object_as_rsc_sends_it() -> None:
     obj = InventoryObject.model_validate(_object_node(id="a", name="vm-a"))
 
     assert obj.object_type == "VmwareVirtualMachine"
-    assert obj.protection_status == "PROTECTED"
+    assert obj.protection_status == "Protected"
     assert obj.sla_domain is not None and obj.sla_domain.name == "Gold"
     assert obj.cluster is not None and obj.cluster.name == "cluster-one"
     assert obj.last_snapshot == datetime(2024, 6, 1, 1, 0, tzinfo=UTC)
-    assert obj.org_name is None  # RSC's "" for no organisation
     assert obj.total_snapshots == 42
 
 
@@ -122,7 +120,7 @@ def test_an_unprotected_object_has_no_sla_domain_or_snapshots() -> None:
             id="a",
             name="mailbox-a",
             objectType="O365Mailbox",
-            protectionStatus="NO_SLA",
+            protectionStatus="NoSla",
             complianceStatus="UNPROTECTED",
             slaDomain=None,
             cluster=None,
@@ -131,6 +129,10 @@ def test_an_unprotected_object_has_no_sla_domain_or_snapshots() -> None:
     )
 
     assert obj.sla_domain is None and obj.cluster is None and obj.last_snapshot is None
+
+
+def test_a_blank_location_is_none() -> None:
+    assert InventoryObject(id="a", name="x", location="").location is None
 
 
 def test_key_prefers_the_global_id() -> None:
