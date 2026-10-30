@@ -42,6 +42,7 @@ from .activity import ActivitySeriesManager
 from .auth import ServiceAccount, service_account_auth
 from .cluster import ClusterManager
 from .errors import ChangesNotAllowed, GraphQLError
+from .inventory import InventoryManager
 from .mssql import MssqlDatabaseManager
 from .sla_domain import SlaDomainManager
 
@@ -116,6 +117,7 @@ class RubrikClient:
 
         self.jobs = ActivitySeriesManager(self)
         self.clusters = ClusterManager(self)
+        self.inventory = InventoryManager(self)
         self.sla_domains = SlaDomainManager(self)
         self.mssql_databases = MssqlDatabaseManager(self)
         self._logger.debug("Initialized RubrikClient for {}", self.base_url)
