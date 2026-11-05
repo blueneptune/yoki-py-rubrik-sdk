@@ -638,7 +638,7 @@ wheels = [
 
 [[package]]
 name = "rubrik-sdk"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -661,7 +661,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "sdk-primer", git = "https://github.com/blueneptune/sdk-primer-core.git?tag=v0.1.2" },
+    { name = "sdk-primer", git = "https://github.com/blueneptune/sdk-primer-core.git?tag=v0.2.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -700,8 +700,8 @@ wheels = [
 
 [[package]]
 name = "sdk-primer"
-version = "0.1.2"
-source = { git = "https://github.com/blueneptune/sdk-primer-core.git?tag=v0.1.2#3aabb854478be2564cd8920609978f12f3f84960" }
+version = "0.2.0"
+source = { git = "https://github.com/blueneptune/sdk-primer-core.git?tag=v0.2.0#8a98dfa8aad7a3a1539d52321e637f2c6a353ed6" }
 dependencies = [
     { name = "httpx" },
     { name = "loguru" },

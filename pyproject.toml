@@ -1,6 +1,6 @@
 [project]
 name = "rubrik-sdk"
-version = "0.3.0"
+version = "0.3.1"
 description = "A small, read-only-by-default SDK for Rubrik Security Cloud's (RSC) GraphQL API, built on sdk-primer-core."
 readme = "README.md"
 license = "MIT"
@@ -35,7 +35,7 @@ Repository = "https://github.com/blueneptune/yoki-py-rubrik-sdk"
 [tool.uv.sources]
 # The transport underneath: retries, typed exceptions, request logging,
 # the service-account token exchange.
-sdk-primer = { git = "https://github.com/blueneptune/sdk-primer-core.git", tag = "v0.1.2" }
+sdk-primer = { git = "https://github.com/blueneptune/sdk-primer-core.git", tag = "v0.2.0" }
 
 [build-system]
 requires = ["hatchling"]
